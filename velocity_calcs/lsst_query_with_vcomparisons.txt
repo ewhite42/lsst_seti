@@ -1,0 +1,9 @@
+SELECT mpc.ssObjectId, mpc.incl, mpc.e, mpc.q, sso.g_H, sso.r_H, sso.i_H, sso.z_H, sso.u_H, sso.y_H, sss.heliocentricDist, sss.heliocentricVX, sss.heliocentricVY, sss.heliocentricVZ
+FROM dp03_catalogs_10yr.MPCORB AS mpc
+JOIN dp03_catalogs_10yr.SSObject AS sso ON mpc.ssObjectId = sso.ssObjectId
+JOIN dp03_catalogs_10yr.SSSource AS sss ON mpc.ssObjectId = sss.ssObjectId
+WHERE mpc.q/(1-mpc.e) < 6.0
+AND sso.g_H != 0
+AND sso.r_H != 0
+AND sso.i_H != 0
+AND sso.z_H != 0
