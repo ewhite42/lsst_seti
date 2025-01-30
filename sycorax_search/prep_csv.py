@@ -19,7 +19,9 @@ def main():
     # calculate quantities for new columns
     # create new csv file
     
-    infile_name = 'table_dp03_catalogs_10yr.MPCORB-data.csv'
+    infile_name = '/home/ellie/research/lsst/table_dp03_catalogs_10yr.MPCORB-AS-mpc-JOIN-dp03_c.csv'
+    outfile_name = '/home/ellie/research/lsst/LSST_sim.csv'
+    
     indata = pd.read_csv(infile_name)
     
     ## add the semi-major axis column
@@ -51,8 +53,11 @@ def main():
     ## add the velocity difference versus perihelion distance column
     indata['diffv/r'] = indata['v-vk']/indata['heliocentricDist']
     
+    ## add the perihelion distance column
+    indata['r'] = indata['heliocentricDist']
+    
     ## write to a new csv file
-    indata.to_csv('LSST_sim.csv', index=False) 
+    indata.to_csv(outfile_name) #, index=False) 
     
 if __name__ == '__main__':
     main()
