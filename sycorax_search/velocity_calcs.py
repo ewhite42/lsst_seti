@@ -25,6 +25,24 @@ def measured_velocity(vx, vy, vz):
     
     return np.sqrt(vx**2 + vy**2 + vz**2)
     
+
+def measured_velocity_spherical(vx, vy, vz):
+    # this function calculates the total velocity from the x,y,z 
+    # heliocentric velocities from the SSSource table
+    
+    # not totally sure what units these are in -- data product
+    # document says that the heliocentric velocities are in "AU" 
+    # whatever that means... I am thinking they are in AU/day, based on 
+    # comparing Keplerian velocities calculated for various units, bc
+    # AU/day agreed the best.
+    
+    r_dot = np.sqrt(vx**2 + vy**2 + vz**2)
+    az_dot = np.arctan(vy/vx)
+    el_dot = np.arccos(vz/r_dot)
+    
+    return r_dot, az_dot, el_dot
+    
+
 def keplerian_velocity(r, a):
     # this function allows us to calculate the predicted,
     # Keplerian velocity of an object using: 
@@ -38,4 +56,36 @@ def keplerian_velocity(r, a):
     # we are omitting it here. 
 
     # this returns the Keplerian velocity in AU/day
-    return np.sqrt((G_au_d)*((2/r)-(1/a)))
+    return np.sqrt((G_au_d)*((2/r)-(1/a)))    
+    
+
+def keplerian_velocity_xyz(r, a, e, n, i): 
+
+    # r = heliocentric distance (~ distance from 1 focus)
+    # a = semi-major axis
+    # e = eccentricity
+    # n = mean daily motion
+    # i = inclination
+    
+    E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
+
+    x_dot = -(a*n*np.sin(E)*cos(i))/(1-e*cos(E))
+    y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))
+    
+    return x_dot, y_dot, z_dot
+    
+
+def keplerian_velocity_spherical(r, a, e, n, i): 
+
+    E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
+
+    x_dot = -(a*n*np.sin(E)*cos(i))/(1-e*cos(E))
+    y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))
+    
+    r_dot = sqrt((x_dot**2) + (y_dot**2) + (z_dot**2))
+    az_dot = np.arctan(y_dot/x_dot)
+    el_dot = np.arccos(z_dot/r)
+    
+    return r_dot, az_dot, el_dot
