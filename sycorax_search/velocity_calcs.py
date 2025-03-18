@@ -59,7 +59,7 @@ def keplerian_velocity(r, a):
     return np.sqrt((G_au_d)*((2/r)-(1/a)))    
     
 
-def keplerian_velocity_xyz(r, a, e, n, i): 
+def keplerian_velocity_xyz(r, a, e, i, node, peri): 
 
     # r = heliocentric distance (~ distance from 1 focus)
     # a = semi-major axis
@@ -67,25 +67,99 @@ def keplerian_velocity_xyz(r, a, e, n, i):
     # n = mean daily motion
     # i = inclination
     
+    # n = mean motion
+    # mean motion is the average angular distance traveled per day
+    
+    n = np.sqrt(G_au_d / (a**3))
+    
     E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
 
-    x_dot = -(a*n*np.sin(E)*cos(i))/(1-e*cos(E))
+    '''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
     y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
-    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))
+    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
+    
+    ## unrotated coordinates and vector
+    X_dot = -(a*n*np.sin(E))/(1-e*np.cos(E))
+    Y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+    
+    v_XYZ = [X_dot, Y_dot, 0]
+
+    ## rotation matrix
+    P11 = np.cos(node)*np.cos(peri)-np.sin(node)*np.cos(i)*np.sin(peri)
+    P12 = -np.cos(node)*np.sin(peri)-np.sin(node)*np.cos(i)*np.cos(peri)
+    P13 = np.sin(node)*np.sin(i)
+    
+    P21 = np.sin(node)*np.cos(peri)+np.cos(node)*np.cos(i)*np.sin(peri)
+    P22 = -np.sin(node)*np.sin(peri)+np.cos(node)*np.cos(i)*np.cos(peri)
+    P23 = -np.cos(node)*np.sin(i)
+    
+    P31 = np.sin(i)*np.sin(peri)
+    P32 = np.sin(i)*np.cos(peri)
+    P33 = np.cos(i)
+    
+    P = np.array([[P11, P12, P13], [P21, P22, P23], [P31, P32, P33]])
+    
+    ## numpy matrix multiplication throwing errors, too tired to debug it, 
+    ## so writing it out by hand for now...
+    #v_xyz = np.dot(P, v_XYZ)
+    
+    v_xyz = [P11*v_XYZ[0]+P12*v_XYZ[1]+P13*v_XYZ[2], P21*v_XYZ[0]+P22*v_XYZ[1]+P23*v_XYZ[2], P31*v_XYZ[0]+P32*v_XYZ[1]+P33*v_XYZ[2]]
+    
+    x_dot = v_xyz[0]
+    y_dot = v_xyz[1]
+    z_dot = v_xyz[2]
     
     return x_dot, y_dot, z_dot
     
 
-def keplerian_velocity_spherical(r, a, e, n, i): 
-
-    E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
-
-    x_dot = -(a*n*np.sin(E)*cos(i))/(1-e*cos(E))
-    y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
-    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))
+def keplerian_velocity_spherical(r, a, e, i, node, peri): 
     
-    r_dot = sqrt((x_dot**2) + (y_dot**2) + (z_dot**2))
+    # n = mean motion
+    # mean motion is the average angular distance traveled per day
+    
+    n = np.sqrt(G_au_d / (a**3))
+    
+    #print((1 - r/a)/e)
+    E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
+    #print(E)
+    
+    '''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
+    y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
+    
+    ## unrotated coordinates and vector
+    X_dot = -(a*n*np.sin(E))/(1-e*np.cos(E))
+    Y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+    
+    v_XYZ = [X_dot, Y_dot, 0]
+
+    ## rotation matrix
+    P11 = np.cos(node)*np.cos(peri)-np.sin(node)*np.cos(i)*np.sin(peri)
+    P12 = -np.cos(node)*np.sin(peri)-np.sin(node)*np.cos(i)*np.cos(peri)
+    P13 = np.sin(node)*np.sin(i)
+    
+    P21 = np.sin(node)*np.cos(peri)+np.cos(node)*np.cos(i)*np.sin(peri)
+    P22 = -np.sin(node)*np.sin(peri)+np.cos(node)*np.cos(i)*np.cos(peri)
+    P23 = -np.cos(node)*np.sin(i)
+    
+    P31 = np.sin(i)*np.sin(peri)
+    P32 = np.sin(i)*np.cos(peri)
+    P33 = np.cos(i)
+    
+    P = np.array([[P11, P12, P13], [P21, P22, P23], [P31, P32, P33]])
+    
+    ## numpy matrix multiplication throwing errors, too tired to debug it, 
+    ## so writing it out by hand for now...
+    #v_xyz = np.dot(P, v_XYZ)
+    
+    v_xyz = [P11*v_XYZ[0]+P12*v_XYZ[1]+P13*v_XYZ[2], P21*v_XYZ[0]+P22*v_XYZ[1]+P23*v_XYZ[2], P31*v_XYZ[0]+P32*v_XYZ[1]+P33*v_XYZ[2]]
+    
+    x_dot = v_xyz[0]
+    y_dot = v_xyz[1]
+    z_dot = v_xyz[2]
+    
+    r_dot = np.sqrt((x_dot**2) + (y_dot**2) + (z_dot**2))
     az_dot = np.arctan(y_dot/x_dot)
-    el_dot = np.arccos(z_dot/r)
+    el_dot = np.arccos(z_dot/r_dot)    
     
     return r_dot, az_dot, el_dot
