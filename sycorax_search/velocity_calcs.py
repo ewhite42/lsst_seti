@@ -6,6 +6,7 @@
 ## M. E. White, 15 Jan 2025
 
 import numpy as np
+from scipy.optimize import fsolve
 
 ## define our constants
 G_au_yr = 39.422888 #G in au*(au/yr)^2/M_sun units
@@ -42,6 +43,19 @@ def measured_velocity_spherical(vx, vy, vz):
     
     return r_dot, az_dot, el_dot
     
+def kepler_equation(E, M, e):
+    ## define Kepler's equation to find
+    ## the eccentric anomaly, E
+    
+    return (M-E+e*np.sin(E))
+    
+def return_M(row):
+    #return np.arccos(row['heliocentricX']/row['heliocentricDist']) + ((1.5*np.pi) if row['heliocentricY'] < 0 else 0)
+    if row['heliocentricY'] < 0:
+        return np.arccos(row['heliocentricX']/row['heliocentricDist']) 
+        
+    else: 
+        return (2*np.pi) - np.arccos(row['heliocentricX']/row['heliocentricDist'])
 
 def keplerian_velocity(r, a):
     # this function allows us to calculate the predicted,
@@ -59,7 +73,7 @@ def keplerian_velocity(r, a):
     return np.sqrt((G_au_d)*((2/r)-(1/a)))    
     
 
-def keplerian_velocity_xyz(r, a, e, i, node, peri): 
+def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df): 
 
     # r = heliocentric distance (~ distance from 1 focus)
     # a = semi-major axis
@@ -72,7 +86,19 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri):
     
     n = np.sqrt(G_au_d / (a**3))
     
-    E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
+    ## mean anomaly
+    M = df.apply(return_M, axis=1)
+
+    #M = np.arccos(x/r)
+    
+    ## calculate eccentric anomaly
+    guess_E = M
+    solution_E = fsolve(kepler_equation, M, args=(M,e))
+    #print(solution_E)
+    E = solution_E
+    
+    #print((a*e + x)/a)
+    #E = np.arccos((a*e + x)/a)#np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
 
     '''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
     y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
@@ -112,15 +138,26 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri):
     return x_dot, y_dot, z_dot
     
 
-def keplerian_velocity_spherical(r, a, e, i, node, peri): 
+def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df): 
     
     # n = mean motion
     # mean motion is the average angular distance traveled per day
     
     n = np.sqrt(G_au_d / (a**3))
     
+    ## mean anomaly
+    #M = np.arccos(x/r)
+        ## mean anomaly
+    M = df.apply(return_M, axis=1)
+    
+    ## calculate eccentric anomaly
+    guess_E = M
+    solution_E = fsolve(kepler_equation, M, args=(M,e))
+    #print(solution_E)
+    E = solution_E
     #print((1 - r/a)/e)
-    E = np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
+    #E = np.arccos((a*e + x)/a) 
+    #np.arccos((1 - r/a)/e) 
     #print(E)
     
     '''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))

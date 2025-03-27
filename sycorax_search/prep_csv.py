@@ -25,11 +25,14 @@ def main():
     #infile_name = '/home/ellie/research/lsst/table_dp03_catalogs_10yr.MPCORB-AS-mpc-JOIN-dp03_c.csv'
     #outfile_name = '/home/ellie/research/lsst/LSST_sim.csv'
     
-    #infile_name = '/home/ellie/research/lsst/s1003Hmna_data.csv'
-    #outfile_name = '/home/ellie/research/lsst/s1003Hmna_data_vel.csv'
+    #infile_name = '/home/ellie/research/lsst/s1003Hmna_data.csv' #
+    #outfile_name = '/home/ellie/research/lsst/s1003Hmna_data_vel.csv' #
     
-    infile_name = '/home/ellie/research/lsst/LSST_1million_objects.csv'
-    outfile_name = '/home/ellie/research/lsst/LSST_1million_objects_ready.csv'
+    infile_name = '/home/ellie/research/lsst/S100a6n8a_data.csv' #s1003Hmna_data.csv' #
+    outfile_name = '/home/ellie/research/lsst/S100a6n8a_data_vel.csv' #s1003Hmna_data_vel.csv' #
+    
+    #infile_name = '/home/ellie/research/lsst/LSST_1million_objects.csv'
+    #outfile_name = '/home/ellie/research/lsst/LSST_1million_objects_ready.csv'
     
     indata = pd.read_csv(infile_name)
     
@@ -38,9 +41,14 @@ def main():
     e = indata['e']  ## eccentricity
     a = q/(1-e)  ## semi major axis
     #n = indata['n']
-    node = indata['node'] ## longitude of the ascending node
-    peri = indata['peri'] ## argument of the perihelion
+    node = indata['node'] * np.pi/180 ## longitude of the ascending node
+    peri = indata['peri'] * np.pi/180 ## argument of the perihelion
     i = indata['incl'] * np.pi/180
+    x = indata['heliocentricX']
+    y = indata['heliocentricY']
+    
+    ## set all z velocities to zero
+    #indata['heliocentricVZ'] = 0.00
     
     ## add the semi major axis column
     indata['a'] = a
@@ -58,7 +66,7 @@ def main():
     indata['r'] = indata['heliocentricDist']
     
     ## xyz keplerian velocities
-    x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri)
+    x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata)
     
     indata['x_dotk'] = x_dotk
     indata['y_dotk'] = y_dotk
@@ -71,7 +79,7 @@ def main():
     
     ## spherical measured and keplerian velocities 
     r_dot, az_dot, el_dot = measured_velocity_spherical(indata['heliocentricVX'], indata['heliocentricVY'], indata['heliocentricVZ'])
-    r_dotk, az_dotk, el_dotk = keplerian_velocity_spherical(indata['heliocentricDist'], a, e, i, node, peri)
+    r_dotk, az_dotk, el_dotk = keplerian_velocity_spherical(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata)
     
     indata['r_dot'] = r_dot
     indata['az_dot'] = az_dot
