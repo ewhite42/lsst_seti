@@ -11,11 +11,22 @@
 
 import numpy as np
 import pandas as pd
+
+from astropy import units as u
+from astropy.units import cds
+from astropy.coordinates import SkyCoord, GCRS, HeliocentricTrueEcliptic
+
+from poliastro.bodies import Sun
+from poliastro.twobody import Orbit
+from poliastro.twobody.angles import M_to_E, E_to_nu
+from poliastro.frames.ecliptic import HeliocentricEclipticJ2000
+
 from velocity_calcs import measured_velocity
 from velocity_calcs import keplerian_velocity
 from velocity_calcs import keplerian_velocity_xyz
 from velocity_calcs import measured_velocity_spherical
 from velocity_calcs import keplerian_velocity_spherical
+from velocity_calcs import return_M_ap
 
 def main():
     # import original file
@@ -25,14 +36,17 @@ def main():
     #infile_name = '/home/ellie/research/lsst/table_dp03_catalogs_10yr.MPCORB-AS-mpc-JOIN-dp03_c.csv'
     #outfile_name = '/home/ellie/research/lsst/LSST_sim.csv'
     
-    #infile_name = '/home/ellie/research/lsst/s1003Hmna_data.csv' #
-    #outfile_name = '/home/ellie/research/lsst/s1003Hmna_data_vel.csv' #
+    infile_name = '/home/ellie/research/lsst/s1003Hmna_data.csv' #
+    outfile_name = '/home/ellie/research/lsst/s1003Hmna_data_vel.csv' #
     
-    infile_name = '/home/ellie/research/lsst/S100a6n8a_data.csv' #s1003Hmna_data.csv' #
-    outfile_name = '/home/ellie/research/lsst/S100a6n8a_data_vel.csv' #s1003Hmna_data_vel.csv' #
+    #infile_name = '/home/ellie/research/lsst/S100a6n8a_data.csv' #s1003Hmna_data.csv' #
+    #outfile_name = '/home/ellie/research/lsst/S100a6n8a_data_vel.csv' #s1003Hmna_data_vel.csv' #
     
-    #infile_name = '/home/ellie/research/lsst/LSST_1million_objects.csv'
-    #outfile_name = '/home/ellie/research/lsst/LSST_1million_objects_ready.csv'
+    #infile_name = '/home/ellie/research/lsst/2015_VA53_data.csv' #s1003Hmna_data.csv' #
+    #outfile_name = '/home/ellie/research/lsst/2015_VA53_data_vel.csv'
+    
+    #infile_name = '/home/ellie/research/lsst/LSST_500k_objects.csv'
+    #outfile_name = '/home/ellie/research/lsst/LSST_500k_objects_ready.csv'
     
     indata = pd.read_csv(infile_name)
     
@@ -43,7 +57,7 @@ def main():
     #n = indata['n']
     node = indata['node'] * np.pi/180 ## longitude of the ascending node
     peri = indata['peri'] * np.pi/180 ## argument of the perihelion
-    i = indata['incl'] * np.pi/180
+    i = indata['incl']* np.pi/180
     x = indata['heliocentricX']
     y = indata['heliocentricY']
     
@@ -66,6 +80,51 @@ def main():
     indata['r'] = indata['heliocentricDist']
     
     ## xyz keplerian velocities
+    # need to figure out how to calculate nu
+    M = indata.apply(return_M_ap, axis=1)
+    ecc = u.Quantity(e)
+    
+    #heliocentric_frame = HeliocentricEclipticJ2000()
+    
+    E_list = []
+    nu_list = []
+    x_dotk = []
+    y_dotk = []
+    z_dotk = []
+    
+    #print(indata['E'])   
+    
+    '''for ind, row in indata.iterrows():
+        E = (M_to_E(M[ind], ecc[ind]))+ 1.1*np.pi*u.rad
+        E_list.append(E)
+        nu = E_to_nu(E, ecc[ind])
+        nu_list.append(nu)
+        
+        obj_orbit = Orbit.from_classical(Sun, u.Quantity(a[ind], u.AU), ecc[ind], \
+                                       u.Quantity(i[ind], u.rad), u.Quantity(node[ind], u.rad), \
+                                       u.Quantity(peri[ind], u.rad), nu, \
+                                       u.Quantity(indata['epoch'][ind], cds.MJD))
+                                       
+        #orb_heliocentric = obj_orbit.transform_to(heliocentric_frame)
+        vk_vector = obj_orbit.v
+        vx = vk_vector.to(u.AU / u.day)[0]
+        vy = vk_vector.to(u.AU / u.day)[1]
+        vz = vk_vector.to(u.AU / u.day)[2]
+        
+        r_vector = obj_orbit.r
+        rx = r_vector.to(u.AU)[0]
+        ry = r_vector.to(u.AU)[1]
+        rz = r_vector.to(u.AU)[2]
+        
+        x_dotk.append(vx.value)
+        y_dotk.append(vy.value)
+        z_dotk.append(vz.value)
+        #print(vk_vector.to(u.AU / u.day))
+        #print(vk_vector.to(u.AU / u.day)[0])
+        
+    indata['E'] = E_list
+    indata['nu'] = nu_list'''
+        
     x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata)
     
     indata['x_dotk'] = x_dotk
@@ -73,9 +132,9 @@ def main():
     indata['z_dotk'] = z_dotk
     
     ## xyz velocity difference columns
-    indata['delta_x_dot'] = indata['heliocentricVX'] - indata['x_dotk']
+    '''indata['delta_x_dot'] = indata['heliocentricVX'] - indata['x_dotk']
     indata['delta_y_dot'] = indata['heliocentricVY'] - indata['y_dotk']
-    indata['delta_z_dot'] = indata['heliocentricVZ'] - indata['z_dotk']
+    indata['delta_z_dot'] = indata['heliocentricVZ'] - indata['z_dotk']'''
     
     ## spherical measured and keplerian velocities 
     r_dot, az_dot, el_dot = measured_velocity_spherical(indata['heliocentricVX'], indata['heliocentricVY'], indata['heliocentricVZ'])

@@ -6,7 +6,9 @@
 ## M. E. White, 15 Jan 2025
 
 import numpy as np
+
 from scipy.optimize import fsolve
+from astropy import units as u
 
 ## define our constants
 G_au_yr = 39.422888 #G in au*(au/yr)^2/M_sun units
@@ -52,10 +54,18 @@ def kepler_equation(E, M, e):
 def return_M(row):
     #return np.arccos(row['heliocentricX']/row['heliocentricDist']) + ((1.5*np.pi) if row['heliocentricY'] < 0 else 0)
     if row['heliocentricY'] < 0:
-        return np.arccos(row['heliocentricX']/row['heliocentricDist']) 
+        return (2*np.pi) - np.arccos(row['heliocentricX']/row['heliocentricDist'])
         
     else: 
-        return (2*np.pi) - np.arccos(row['heliocentricX']/row['heliocentricDist'])
+        return np.arccos(row['heliocentricX']/row['heliocentricDist'])
+        
+def return_M_ap(row):
+    #return np.arccos(row['heliocentricX']/row['heliocentricDist']) + ((1.5*np.pi) if row['heliocentricY'] < 0 else 0)
+    if row['heliocentricY'] < 0:
+        return u.Quantity(2*np.pi - np.arccos(row['heliocentricX']/row['heliocentricDist']), u.rad)
+        
+    else: 
+        return u.Quantity(np.arccos(row['heliocentricX']/row['heliocentricDist']), u.rad)
 
 def keplerian_velocity(r, a):
     # this function allows us to calculate the predicted,
@@ -70,6 +80,7 @@ def keplerian_velocity(r, a):
     # we are omitting it here. 
 
     # this returns the Keplerian velocity in AU/day
+    
     return np.sqrt((G_au_d)*((2/r)-(1/a)))    
     
 
@@ -83,30 +94,32 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df):
     
     # n = mean motion
     # mean motion is the average angular distance traveled per day
-    
     n = np.sqrt(G_au_d / (a**3))
     
     ## mean anomaly
-    M = df.apply(return_M, axis=1)
-
+    nu = df.apply(return_M, axis=1)
     #M = np.arccos(x/r)
     
     ## calculate eccentric anomaly
-    guess_E = M
-    solution_E = fsolve(kepler_equation, M, args=(M,e))
-    #print(solution_E)
-    E = solution_E
+    #guess_E = M
+    #solution_E = fsolve(kepler_equation, M, args=(M,e))
+    
+    sin_E = (np.sin(nu) * np.sqrt(1 - e**2)) / (1 + e * np.cos(nu)) 
+    cos_E = (e + np.cos(nu)) / (1 + e * np.cos(nu)) 
+    E = np.arctan2(sin_E, cos_E) #+ np.pi 
+
+    #E = solution_E + np.pi
     
     #print((a*e + x)/a)
     #E = np.arccos((a*e + x)/a)#np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
-
-    '''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
-    y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
-    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
+    
+    node = 0 #2*np.pi - node # node+np.pi
+    peri = 0 #2*np.pi - peri #peri+np.pi #5*np.pi/180
+    #i = i #*180/np.pi #0.5*np.pi - i
     
     ## unrotated coordinates and vector
-    X_dot = -(a*n*np.sin(E))/(1-e*np.cos(E))
-    Y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+    X_dot = (-(a*n*np.sin(E))/(1-e*np.cos(E)))
+    Y_dot = ((a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E))))
     
     v_XYZ = [X_dot, Y_dot, 0]
 
@@ -129,14 +142,32 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df):
     ## so writing it out by hand for now...
     #v_xyz = np.dot(P, v_XYZ)
     
+    #i = 0.5*np.pi - i
+    
+    ## try a different rotation matrix...
+    '''P11 = np.cos(i)
+    P12 = 0
+    P13 = np.sin(i)
+    
+    P21 = 0
+    P22 = 1
+    P23 = 0
+    
+    P31 = -np.sin(i)
+    P32 = 0
+    P33 = np.cos(i)'''
+    
+    #P31 = np.sin(i)*np.sin(peri)
+    #P32 = np.sin(i)*np.cos(peri)
+    #P33 = np.cos(i)
+    
     v_xyz = [P11*v_XYZ[0]+P12*v_XYZ[1]+P13*v_XYZ[2], P21*v_XYZ[0]+P22*v_XYZ[1]+P23*v_XYZ[2], P31*v_XYZ[0]+P32*v_XYZ[1]+P33*v_XYZ[2]]
     
-    x_dot = v_xyz[0]
-    y_dot = v_xyz[1]
-    z_dot = v_xyz[2]
+    x_dot = X_dot #v_xyz[0] #X_dot #
+    y_dot = Y_dot*np.cos(i) #v_xyz[1] #Y_dot #
+    z_dot = -Y_dot*np.sin(i) #v_xyz[2]
     
     return x_dot, y_dot, z_dot
-    
 
 def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df): 
     
@@ -147,7 +178,7 @@ def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df):
     
     ## mean anomaly
     #M = np.arccos(x/r)
-        ## mean anomaly
+    ## mean anomaly
     M = df.apply(return_M, axis=1)
     
     ## calculate eccentric anomaly
@@ -155,14 +186,11 @@ def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df):
     solution_E = fsolve(kepler_equation, M, args=(M,e))
     #print(solution_E)
     E = solution_E
+    
     #print((1 - r/a)/e)
     #E = np.arccos((a*e + x)/a) 
     #np.arccos((1 - r/a)/e) 
     #print(E)
-    
-    '''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
-    y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
-    z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
     
     ## unrotated coordinates and vector
     X_dot = -(a*n*np.sin(E))/(1-e*np.cos(E))
@@ -195,8 +223,16 @@ def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df):
     y_dot = v_xyz[1]
     z_dot = v_xyz[2]
     
-    r_dot = np.sqrt((x_dot**2) + (y_dot**2) + (z_dot**2))
+    r_dot = np.sqrt(X_dot**2 + Y_dot**2) #np.sqrt((x_dot**2) + (y_dot**2) + (z_dot**2))
     az_dot = np.arctan(y_dot/x_dot)
     el_dot = np.arccos(z_dot/r_dot)    
     
     return r_dot, az_dot, el_dot
+
+'''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
+y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
+    
+'''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
+y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
+z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
