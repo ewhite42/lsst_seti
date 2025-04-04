@@ -18,7 +18,7 @@ from astropy.coordinates import SkyCoord, GCRS, HeliocentricTrueEcliptic
 
 from poliastro.bodies import Sun
 from poliastro.twobody import Orbit
-from poliastro.twobody.angles import M_to_E, E_to_nu
+from poliastro.twobody.angles import M_to_E, E_to_nu, nu_to_E
 from poliastro.frames.ecliptic import HeliocentricEclipticJ2000
 
 from velocity_calcs import measured_velocity
@@ -26,7 +26,7 @@ from velocity_calcs import keplerian_velocity
 from velocity_calcs import keplerian_velocity_xyz
 from velocity_calcs import measured_velocity_spherical
 from velocity_calcs import keplerian_velocity_spherical
-from velocity_calcs import return_M_ap
+from velocity_calcs import return_nu_ap
 
 def main():
     # import original file
@@ -37,7 +37,7 @@ def main():
     #outfile_name = '/home/ellie/research/lsst/LSST_sim.csv'
     
     infile_name = '/home/ellie/research/lsst/s1003Hmna_data.csv' #
-    outfile_name = '/home/ellie/research/lsst/s1003Hmna_data_vel.csv' #
+    outfile_name = '/home/ellie/research/lsst/s1003Hmna_data_vel_poli.csv' #
     
     #infile_name = '/home/ellie/research/lsst/S100a6n8a_data.csv' #s1003Hmna_data.csv' #
     #outfile_name = '/home/ellie/research/lsst/S100a6n8a_data_vel.csv' #s1003Hmna_data_vel.csv' #
@@ -60,6 +60,7 @@ def main():
     i = indata['incl']* np.pi/180
     x = indata['heliocentricX']
     y = indata['heliocentricY']
+    z = indata['heliocentricZ']
     
     ## set all z velocities to zero
     #indata['heliocentricVZ'] = 0.00
@@ -81,7 +82,7 @@ def main():
     
     ## xyz keplerian velocities
     # need to figure out how to calculate nu
-    M = indata.apply(return_M_ap, axis=1)
+    nu = indata.apply(return_nu_ap, axis=1)
     ecc = u.Quantity(e)
     
     #heliocentric_frame = HeliocentricEclipticJ2000()
@@ -94,15 +95,15 @@ def main():
     
     #print(indata['E'])   
     
-    '''for ind, row in indata.iterrows():
-        E = (M_to_E(M[ind], ecc[ind]))+ 1.1*np.pi*u.rad
+    for ind, row in indata.iterrows():
+        E = (nu_to_E(nu[ind], ecc[ind])) #+ 1.1*np.pi*u.rad
         E_list.append(E)
-        nu = E_to_nu(E, ecc[ind])
-        nu_list.append(nu)
+        #nu = E_to_nu(E, ecc[ind])
+        #nu_list.append(nu)
         
         obj_orbit = Orbit.from_classical(Sun, u.Quantity(a[ind], u.AU), ecc[ind], \
                                        u.Quantity(i[ind], u.rad), u.Quantity(node[ind], u.rad), \
-                                       u.Quantity(peri[ind], u.rad), nu, \
+                                       u.Quantity(peri[ind], u.rad), nu[ind], \
                                        u.Quantity(indata['epoch'][ind], cds.MJD))
                                        
         #orb_heliocentric = obj_orbit.transform_to(heliocentric_frame)
@@ -123,9 +124,9 @@ def main():
         #print(vk_vector.to(u.AU / u.day)[0])
         
     indata['E'] = E_list
-    indata['nu'] = nu_list'''
-        
-    x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata)
+    indata['nu'] = nu
+            
+    # x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata)
     
     indata['x_dotk'] = x_dotk
     indata['y_dotk'] = y_dotk
