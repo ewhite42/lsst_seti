@@ -34,27 +34,13 @@ from velocity_calcs import return_nu_ap
 rubin_loc = EarthLocation.from_geodetic(-70.74941666666666*u.deg, \
                                         -30.244633333333333*u.deg, 2662.75*u.m)
 
-def main():
+def main(indata):
     # import original file
     # calculate quantities for new columns
     # create new csv file
     
     #infile_name = '/home/ellie/research/lsst/table_dp03_catalogs_10yr.MPCORB-AS-mpc-JOIN-dp03_c.csv'
     #outfile_name = '/home/ellie/research/lsst/LSST_sim.csv'
-    
-    infile_name = '/home/ellie/Downloads/1M_Objects.csv' #
-    outfile_name = '/home/ellie/research/lsst/1M_Objects_vel.csv' #
-    
-    #infile_name = '/home/ellie/research/lsst/S100a6n8a_data.csv' #s1003Hmna_data.csv' #
-    #outfile_name = '/home/ellie/research/lsst/S100a6n8a_data_vel.csv' #s1003Hmna_data_vel.csv' #
-    
-    #infile_name = '/home/ellie/research/lsst/2015_VA53_data.csv' #s1003Hmna_data.csv' #
-    #outfile_name = '/home/ellie/research/lsst/2015_VA53_data_vel.csv'
-    
-    #infile_name = '/home/ellie/research/lsst/LSST_500k_objects.csv'
-    #outfile_name = '/home/ellie/research/lsst/LSST_500k_objects_ready.csv'
-    
-    indata = pd.read_csv(infile_name)
     
     ## add the semi-major axis column
     q = indata['q']  
@@ -171,9 +157,9 @@ def main():
     indata['z_dotk'] = z_dotk #zdot_ktopo
     
     ## xyz velocity difference columns
-    indata['delta_x_dot'] = indata['heliocentricVX'] - indata['x_dotk']
-    indata['delta_y_dot'] = indata['heliocentricVY'] - indata['y_dotk']
-    indata['delta_z_dot'] = indata['heliocentricVZ'] - indata['z_dotk']
+    indata['delta_x_dot'] = (indata['heliocentricVX'] - indata['x_dotk'])/indata['heliocentricVX']
+    indata['delta_y_dot'] = (indata['heliocentricVY'] - indata['y_dotk'])/indata['heliocentricVY']
+    indata['delta_z_dot'] = (indata['heliocentricVZ'] - indata['z_dotk'])/indata['heliocentricVZ']
     
     ## spherical measured and keplerian velocities 
     r_dot, az_dot, el_dot = measured_velocity_spherical(indata['heliocentricVX'], indata['heliocentricVY'], indata['heliocentricVZ'])
@@ -188,9 +174,9 @@ def main():
     indata['el_dotk'] = el_dotk
     
     ## differences between keplerian and measured spherical velocities
-    indata['delta_r_dot'] = indata['r_dot'] - indata['r_dotk']
-    indata['delta_az_dot'] = indata['az_dot'] - indata['az_dotk']
-    indata['delta_el_dot'] = indata['el_dot'] - indata['el_dotk']
+    indata['delta_r_dot'] = (indata['r_dot'] - indata['r_dotk'])/indata['r_dot']
+    indata['delta_az_dot'] = (indata['az_dot'] - indata['az_dotk'])/indata['az_dot']
+    indata['delta_el_dot'] = (indata['el_dot'] - indata['el_dotk'])/indata['el_dot']
     
     ## add the 1-dimensional measured velocities column
     vel = measured_velocity(indata['heliocentricVX'], indata['heliocentricVY'], indata['heliocentricVZ'])
@@ -207,7 +193,39 @@ def main():
     indata['diffv/r'] = indata['v-vk']/indata['heliocentricDist']
     
     ## write to a new csv file
-    indata.to_csv(outfile_name) #, index=False) 
+    #indata.to_csv(outfile_name) #, index=False) 
+    return indata
     
 if __name__ == '__main__':
-    main()
+
+    infile_name = '/home/ellie/Downloads/All_Objects_4.4M.csv' #
+    outfile_name = '/home/ellie/research/lsst/All_Objects_4.4M_vel.csv' #
+    
+    df_indata = pd.read_csv(infile_name)
+    
+    num_rows = len(df_indata)
+    iter_size = 1000000
+    num_iter = int(num_rows/iter_size)+1
+    start_idx = 0
+    
+    df_results = pd.DataFrame()
+
+    for i in range(num_iter):
+        end_idx = start_idx+iter_size
+        if end_idx > num_rows:
+            df = df_indata.loc[start_idx:num_rows-1].copy()
+            df_result_i = main(df)
+            df_results = pd.concat([df_results, df_result_i], ignore_index=True)
+            start_idx = end_idx
+            print("Reached the end")
+            break
+    
+        df = df_indata.loc[start_idx:end_idx].copy()
+        df_result_i = main(df)
+        df_results = pd.concat([df_results, df_result_i], ignore_index=True)
+    
+        start_idx = end_idx
+        print("just finished the {}th iteration".format(i))
+
+    ## write to a new csv file
+    df_results.to_csv(outfile_name)
