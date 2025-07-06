@@ -8,12 +8,12 @@ import numpy as np
 import bigjson
 import pandas as pd
 
-def main():
-    mpc_fname = '/home/ellie/Downloads/mpcorb_extended.json'
-    out_fname = '/home/ellie/research/lsst/mpcorb_extended_full.csv'
+from astroquery.mpc import MPC
+
+def read_mpcorb(mpc_fname, out_fname):
     
     start_idx = 0
-    num_rows = 1000
+    num_rows = 100
     
     desigs = []
     epochs = []
@@ -60,6 +60,33 @@ def main():
     
     df.to_csv(out_fname)
     print(df)
+    return df['Principle_desig']
+    
+def read_MPCephem(ids):
+
+    ephs = []
+
+    for i in ids: 
+
+        try: 
+            eph = MPC.get_ephemeris(str(i), eph_type='heliocentric', number=1)
+            eph = eph.to_pandas()
+            ephs.append(eph)
+            
+        except RuntimeError:
+            print('No data found')
+        except ValueError:
+            print('Object {} not found'.format(i))
+        except Exception as e:
+            print('some other type of error occurred')
+        
+    print('made it this far')
+        
 
 if __name__ == '__main__':
-    main()
+    mpc_fname = '/home/ellie/Downloads/mpcorb_extended.json'
+    out_fname = '/home/ellie/research/lsst/mpcorb_extended_pt1.csv'
+    
+    ids = read_mpcorb(mpc_fname, out_fname)
+    read_MPCephem(ids)
+    
