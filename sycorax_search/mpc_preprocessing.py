@@ -10,11 +10,34 @@ import pandas as pd
 
 from astroquery.mpc import MPC
 
-def read_mpcorb(mpc_fname, out_fname):
+def read_mpcorb(mpc_fname, numrows=10, random=False, exclude=None):
+
+    ''' this function reads an MPCORB json file and returns
+        a pandas dataframe with relevant fields. It also saves
+        the dataframe to a csv file. 
+        
+        mpc_fname is the filepath for the extended MPCORB json file
+        
+        random - if random is False, objects are read in order. if random 
+                 is True, objects are selected randomly. 
+        
+        exclude is a list of indices of entries in the json file to exclude.
+        
+        By default, exclude is set to None, so no objects are excluded. 
+        The purpose of exclude is to ensure that if you are randomly 
+        selecting objects from the json (instead of doing it in order), 
+        you will have the choice to leave out a list of objects. '''
     
     start_idx = 0
-    num_rows = 100
     
+    ## for some reason, random doesn't work just yet
+    
+    if random:
+        idx_list = np.random.randint(0, 800000, numrows)
+    else:
+        idx_list = range(start_idx, start_idx+numrows)
+    
+    numbers = []
     desigs = []
     epochs = []
     a = []
@@ -30,9 +53,10 @@ def read_mpcorb(mpc_fname, out_fname):
     with open(mpc_fname, 'rb') as f:
         j = bigjson.load(f)
         
-        for i in range(start_idx, start_idx+num_rows):
+        for i in idx_list:
             element = j[i]    
             
+            numbers.append(element['Number'])
             desigs.append(element['Principal_desig'])
             epochs.append(element['Epoch'])
             a.append(element['a'])
@@ -46,6 +70,7 @@ def read_mpcorb(mpc_fname, out_fname):
             orbit_types.append(element['Orbit_type'])
     
     df = pd.DataFrame()
+    df['Number'] = numbers
     df['Principle_desig'] = desigs
     df['Epoch'] = epochs
     df['a'] = a
@@ -57,17 +82,15 @@ def read_mpcorb(mpc_fname, out_fname):
     df['n'] = n
     df['Last_obs'] = last_obs
     df['Orbit_type'] = orbit_types
-    
-    df.to_csv(out_fname)
-    print(df)
-    return df['Principle_desig']
-    
-def read_MPCephem(ids):
 
+    return df
+    
+def read_MPCephem(nums):
+    
     ephs = []
 
-    for i in ids: 
-
+    for i in nums: 
+    
         try: 
             eph = MPC.get_ephemeris(str(i), eph_type='heliocentric', number=1)
             eph = eph.to_pandas()
@@ -79,14 +102,33 @@ def read_MPCephem(ids):
             print('Object {} not found'.format(i))
         except Exception as e:
             print('some other type of error occurred')
-        
-    print('made it this far')
-        
+    
+    ephs_df = pd.concat(ephs)
+    ephs_df['Number'] = nums
+    
+    ## fix weird issue with Y' and Z' having a number, space, then the correct value
+    ## so that now the columns just have the correct values
+    
+    ephs_df[["junk y'","Y'"]] = ephs_df["Y'"].str.split(' ', n=1, expand=True)
+    ephs_df = ephs_df.drop("junk y'", axis=1)
+    
+    ephs_df[["junk z'","Z'"]] = ephs_df["Z'"].str.split(' ', n=1, expand=True)
+    ephs_df = ephs_df.drop("junk z'", axis=1)
+    
+    return ephs_df    
 
 if __name__ == '__main__':
     mpc_fname = '/home/ellie/Downloads/mpcorb_extended.json'
     out_fname = '/home/ellie/research/lsst/mpcorb_extended_pt1.csv'
     
-    ids = read_mpcorb(mpc_fname, out_fname)
-    read_MPCephem(ids)
+    num_rows = 10
+    
+    mpcorb_df = read_mpcorb(mpc_fname, numrows=num_rows, random=False)
+    nums = mpcorb_df['Number'].tolist()
+    
+    ephemerides_df = read_MPCephem(nums)
+    
+    df = pd.merge(mpcorb_df, ephemerides_df, on='Number')
+    df.to_csv(out_fname)
+    print(df.head)
     
