@@ -9,7 +9,7 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup as bs
 
-def main():
+def make_nongrav_table():
     ## first, read in a list of the objects with nongrav
     ## acceleration parameters:
     df_ng = pd.read_csv('/home/ellie/Downloads/codec_results.txt', sep='\\s+', engine='python')
@@ -91,16 +91,37 @@ def main():
         
     print(len(df_html))
     df_nongrav = df_html[df_html['nongrav bool'] == True]
+    df_nongrav.to_csv('/home/ellie/research/lsst/nongrav_accelerations.csv')
     print(len(df_nongrav))
     
-    nbins = 20
-    plt.hist(df_nongrav['A1 [10-8au/day2]'], nbins)
+def main():
+
+    #make_nongrav_table()
+    fname = '/home/ellie/research/lsst/nongrav_accelerations.csv'
+    df_nongrav = pd.read_csv(fname)
+    print(df_nongrav)
+    
+    nbins = 100
+    
+    plt.xlim(-2*10**(-5), 2*10**(-5))
+    plt.hist(df_nongrav['A1 [10-8au/day2]']*10**(-8), nbins)
+    plt.xlabel('AU / day^2')
+    plt.ylabel('Counts')
+    plt.title('A1 parameter')
     plt.show()
     
-    plt.hist(df_nongrav['A2 [10-8au/day2]'], nbins)
+    plt.hist(df_nongrav['A2 [10-8au/day2]']*10**(-8), nbins)
+    plt.xlim(-2*10**(-5), 2*10**(-5))
+    plt.xlabel('AU / day^2')
+    plt.ylabel('Counts')
+    plt.title('A2 parameter')
     plt.show()
     
-    plt.hist(df_nongrav['A3 [10-8au/day2]'], nbins)
+    plt.hist(df_nongrav['A3 [10-8au/day2]']*10**(-8), nbins)
+    plt.xlim(-3*10**(-7), 3*10**(-7))
+    plt.xlabel('AU / day^2')
+    plt.ylabel('Counts')
+    plt.title('A3 parameter')
     plt.show()
     
 if __name__ == '__main__':
