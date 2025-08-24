@@ -68,11 +68,53 @@ def return_nu(row):
     
     X = P11*x + P21*y + P31*z
     
-    if row['heliocentricY'] < 0:
+    if row['heliocentricY'] > 0:
         return (2*np.pi) - np.arccos(X/row['heliocentricDist'])
         
     else: 
         return np.arccos(X/row['heliocentricDist'])
+        
+def return_nu_mpc(row):
+    
+    node = row['Node'] * np.pi/180 
+    peri = row['Peri'] * np.pi/180 ## argument of the perihelion
+    i = row['i']* np.pi/180
+    
+    P11 = np.cos(node)*np.cos(peri)-np.sin(node)*np.cos(i)*np.sin(peri)
+    P21 = np.sin(node)*np.cos(peri)+np.cos(node)*np.cos(i)*np.sin(peri)
+    P31 = np.sin(i)*np.sin(peri)
+    
+    P12 = -np.cos(node)*np.sin(peri)-np.sin(node)*np.cos(i)*np.cos(peri)
+    P22 = -np.sin(node)*np.sin(peri)+np.cos(node)*np.cos(i)*np.cos(peri)
+    P32 = np.sin(i)*np.cos(peri)
+    
+    P13 = np.sin(node)*np.sin(i)
+    P23 = -np.cos(node)*np.sin(i)
+    P33 = np.cos(i)
+    
+    x = row['X']
+    y = row['Y']
+    z = row['Z']
+    
+    X = P11*x + P21*y + P31*z
+    Y = P12*x + P22*y + P32*z
+    Z = P13*x + P23*y + P33*z
+    
+    ## obliquity
+    eps = np.radians(23.43928)
+    
+    Y_eq = np.cos(eps)*Y - np.sin(eps)*Z
+    
+    ## note the switch to the < sign below (instead of
+    ## the > sign used for the Rubin data, above). 
+    ## I am guessing this means that MPC uses a different
+    ## nu convention than Rubin.
+    
+    if Y_eq > 0:
+        return np.arccos(X/row['heliocentricDist'])        
+    else: 
+        return (2*np.pi) - np.arccos(X/row['heliocentricDist'])
+    #return np.arccos(X/row['heliocentricDist'])
         
 def return_nu_ap(row):
 
@@ -91,7 +133,30 @@ def return_nu_ap(row):
     X = P11*x + P21*y + P31*z
 
     #return np.arccos(row['heliocentricX']/row['heliocentricDist']) + ((1.5*np.pi) if row['heliocentricY'] < 0 else 0)
-    if row['heliocentricY'] < 0:
+    if row['heliocentricY'] > 0:
+        return u.Quantity(2*np.pi - np.arccos(X/row['heliocentricDist']), u.rad)
+        
+    else: 
+        return u.Quantity(np.arccos(X/row['heliocentricDist']), u.rad)
+        
+def return_nu_ap_mpc(row):
+
+    node = row['Node'] * np.pi/180 
+    peri = row['Peri'] * np.pi/180 ## argument of the perihelion
+    i = row['i']* np.pi/180
+    
+    P11 = np.cos(node)*np.cos(peri)-np.sin(node)*np.cos(i)*np.sin(peri)
+    P21 = np.sin(node)*np.cos(peri)+np.cos(node)*np.cos(i)*np.sin(peri)
+    P31 = np.sin(i)*np.sin(peri)
+    
+    x = row['X']
+    y = row['Y']
+    z = row['Z']
+    
+    X = P11*x + P21*y + P31*z
+
+    #return np.arccos(row['heliocentricX']/row['heliocentricDist']) + ((1.5*np.pi) if row['heliocentricY'] < 0 else 0)
+    if row['Y'] > 0:
         return u.Quantity(2*np.pi - np.arccos(X/row['heliocentricDist']), u.rad)
         
     else: 
@@ -114,7 +179,7 @@ def keplerian_velocity(r, a):
     return np.sqrt((G_au_d)*((2/r)-(1/a)))    
     
 
-def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df): 
+def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df, mpc=False): 
 
     # r = heliocentric distance (~ distance from 1 focus)
     # a = semi-major axis
@@ -126,8 +191,14 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df):
     # mean motion is the average angular distance traveled per day
     n = np.sqrt(G_au_d / (a**3))
     
+    ## obliquity
+    eps = np.radians(23.43928)
+    
     ## true anomaly
-    nu = df.apply(return_nu, axis=1)
+    if mpc:
+        nu = df.apply(return_nu_mpc, axis=1)
+    else:
+        nu = df.apply(return_nu, axis=1)
     #M = np.arccos(x/r)
     
     ## calculate eccentric anomaly
@@ -194,17 +265,17 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df):
     v_xyz = [P11*v_XYZ[0]+P12*v_XYZ[1]+P13*v_XYZ[2], P21*v_XYZ[0]+P22*v_XYZ[1]+P23*v_XYZ[2], P31*v_XYZ[0]+P32*v_XYZ[1]+P33*v_XYZ[2]]
     
     x_dot = v_xyz[0] #X_dot #v_xyz[0] #X_dot #
-    y_dot = v_xyz[1] #Y_dot*np.cos(i) #v_xyz[1] #Y_dot #
-    z_dot = v_xyz[2] #-Y_dot*np.sin(i) #v_xyz[2]
+    y_dot = np.cos(eps)*v_xyz[1] - np.sin(eps)*v_xyz[2] #Y_dot*np.cos(i) #v_xyz[1] #Y_dot #
+    z_dot = np.sin(eps)*v_xyz[1] + np.cos(eps)*v_xyz[2] #-Y_dot*np.sin(i) #v_xyz[2]
     
     return x_dot, y_dot, z_dot
 
-def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df): 
+def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df, mpc=False): 
     
     # n = mean motion
     # mean motion is the average angular distance traveled per day
     
-    v_xyz = keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df)
+    v_xyz = keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df, mpc)
     
     '''n = np.sqrt(G_au_d / (a**3))
     
@@ -261,10 +332,47 @@ def keplerian_velocity_spherical(r, a, e, i, node, peri, x, y, df):
     
     return r_dot, az_dot, el_dot
 
-'''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
-y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
-z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
+def new_keplerian_xyz(r, a, e, i, node, peri, x, y, df, mpc=False): 
+
+    # r = heliocentric distance (~ distance from 1 focus)
+    # a = semi-major axis
+    # e = eccentricity
+    # n = mean daily motion
+    # i = inclination
     
-'''x_dot = -(a*n*np.sin(E)*np.cos(i))/(1-e*np.cos(E))
-y_dot = (a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E)))
-z_dot = (a*n*np.sin(E)*np.sin(i))/(1-(e*np.cos(E)))'''
+    # n = mean motion
+    # mean motion is the average angular distance traveled per day
+    n = np.sqrt(G_au_d / (a**3))
+    
+    # obliquity: 
+    eps = 23.43928
+    
+    ## true anomaly
+    if mpc:
+        nu = df.apply(return_nu_mpc, axis=1)
+    else:
+        nu = df.apply(return_nu, axis=1)
+    #M = np.arccos(x/r)
+    
+    ## calculate eccentric anomaly
+    #guess_E = M
+    #solution_E = fsolve(kepler_equation, M, args=(M,e))
+    
+    sin_E = (np.sin(nu) * np.sqrt(1 - e**2)) / (1 + e * np.cos(nu)) 
+    cos_E = (e + np.cos(nu)) / (1 + e * np.cos(nu)) 
+    E = np.arctan2(sin_E, cos_E) #+ np.pi 
+    
+    ## compute object's heliocentric coordinates in the orbital plane
+    x_prime = a*(np.cos(E) - e)
+    y_prime = a*np.sqrt(1 - (e**2))*np.sin(E)
+    
+    ## coordinates in the J2000 ecliptic plane
+    xecl = (np.cos(peri)*np.cos(node) - np.sin(peri)*np.sin(node)*np.cos(i))*x_prime + \
+           (-np.sin(peri)*np.cos(node) - np.cos(peri)*np.sin(node)*np.cos(i))*y_prime
+           
+    yecl = (np.cos(peri)*np.sine(node) + np.sin(peri)*np.cos(node)*np.cos(i))*x_prime + \
+           (-np.sin(peri)*np.sin(node) + np.cos(peri)*np.cos(node)*np.cos(i))*y_prime
+           
+    zecl = np.sin(peri)*np.sin(i)*x_prime + np.cos(peri)*np.sin(i)*y_prime
+    
+    return x_dot, y_dot, z_dot   

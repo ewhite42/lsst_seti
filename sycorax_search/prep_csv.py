@@ -19,10 +19,10 @@ from astropy.coordinates import CartesianRepresentation, CartesianDifferential
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 
-#from poliastro.bodies import Sun
-#from poliastro.twobody import Orbit
-#from poliastro.twobody.angles import M_to_E, E_to_nu, nu_to_E
-#from poliastro.frames.ecliptic import HeliocentricEclipticJ2000
+'''from poliastro.bodies import Sun
+from poliastro.twobody import Orbit
+from poliastro.twobody.angles import M_to_E, E_to_nu, nu_to_E
+from poliastro.frames.ecliptic import HeliocentricEclipticJ2000'''
 
 from velocity_calcs import measured_velocity
 from velocity_calcs import keplerian_velocity
@@ -46,6 +46,7 @@ def main(indata):
     q = indata['q']  
     e = indata['e']  ## eccentricity
     a = q/(1-e)  ## semi major axis
+    ap = a*(1+e) ## aphelion
     #n = indata['n']
     node = indata['node'] * np.pi/180 ## longitude of the ascending node
     peri = indata['peri'] * np.pi/180 ## argument of the perihelion
@@ -58,7 +59,9 @@ def main(indata):
     #indata['heliocentricVZ'] = 0.00
     
     ## add the semi major axis column
+    ## and the aphelion column
     indata['a'] = a
+    indata['ap'] = ap
     
     ## add the sin(i) column
     indata['sini'] = np.sin(indata['incl'] * np.pi/180)
@@ -79,7 +82,7 @@ def main(indata):
     
     #heliocentric_frame = HeliocentricEclipticJ2000()
     
-    E_list = []
+    '''E_list = []
     nu_list = []
     x_dotk = []
     y_dotk = []
@@ -87,7 +90,7 @@ def main(indata):
     
     #print(indata['E'])   
     
-    '''for ind, row in indata.iterrows():
+    for ind, row in indata.iterrows():
         E = (nu_to_E(nu[ind], ecc[ind])) #+ 1.1*np.pi*u.rad
         E_list.append(E)
         #nu = E_to_nu(E, ecc[ind])
@@ -200,6 +203,9 @@ if __name__ == '__main__':
 
     infile_name = '/home/ellie/Downloads/All_Objects_4.4M.csv' #
     outfile_name = '/home/ellie/research/lsst/All_Objects_4.4M_vel.csv' #
+    
+    #infile_name = '/home/ellie/research/lsst/S100a6n8a_data.csv'
+    #outfile_name = '/home/ellie/research/lsst/S100a6n8a_data_vel.csv'
     
     df_indata = pd.read_csv(infile_name)
     

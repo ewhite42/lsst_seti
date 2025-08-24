@@ -10,7 +10,7 @@ import pandas as pd
 
 from astroquery.mpc import MPC
 
-def read_mpcorb(mpc_fname, numrows=10, random=False, exclude=None):
+def read_mpcorb(mpc_fname, numrows=10, start_idx=0, random=False, exclude=None):
 
     ''' this function reads an MPCORB json file and returns
         a pandas dataframe with relevant fields. It also saves
@@ -28,7 +28,7 @@ def read_mpcorb(mpc_fname, numrows=10, random=False, exclude=None):
         selecting objects from the json (instead of doing it in order), 
         you will have the choice to leave out a list of objects. '''
     
-    start_idx = 0
+    #start_idx = 0
     
     ## for some reason, random doesn't work just yet
     
@@ -85,26 +85,46 @@ def read_mpcorb(mpc_fname, numrows=10, random=False, exclude=None):
 
     return df
     
-def read_MPCephem(nums):
+def read_MPCephem(nums, ephlines=1):
     
     ephs = []
+    
+    eph_cols = ['Object', 'JD', 'X', 'Y', 'Z', "X'", "Y'", "Z'"]
+    blank_df = pd.DataFrame(columns=eph_cols)
+    blank_df.loc[0] = 0
+    
+    #counter = 0 
 
-    for i in nums: 
+    for i in nums:
+    
+        '''if counter == 8:
+            print('counter is 8')
+            ephs.append(blank_df)
+            counter += 1
+            continue '''
     
         try: 
-            eph = MPC.get_ephemeris(str(i), eph_type='heliocentric', number=1)
+            eph = MPC.get_ephemeris(str(i), eph_type='heliocentric', number=ephlines)
             eph = eph.to_pandas()
             ephs.append(eph)
             
+            #counter += 1
+            #print(eph.columns)
+            
         except RuntimeError:
             print('No data found')
+            ephs.append(blank_df)            
         except ValueError:
             print('Object {} not found'.format(i))
+            ephs.append(blank_df)
         except Exception as e:
             print('some other type of error occurred')
+            ephs.append(blank_df)
     
-    ephs_df = pd.concat(ephs)
-    ephs_df['Number'] = nums
+    #print(ephs)
+    
+    ephs_df = pd.concat(ephs, ignore_index=True)
+    ephs_df['Number'] = [nums[0]]*1200
     
     ## fix weird issue with Y' and Z' having a number, space, then the correct value
     ## so that now the columns just have the correct values
@@ -119,14 +139,14 @@ def read_MPCephem(nums):
 
 if __name__ == '__main__':
     mpc_fname = '/home/ellie/Downloads/mpcorb_extended.json'
-    out_fname = '/home/ellie/research/lsst/mpcorb_extended_pt1.csv'
+    out_fname = '/home/ellie/research/lsst/mpcorb_ceres.csv'
     
-    num_rows = 10
+    num_rows = 1
     
-    mpcorb_df = read_mpcorb(mpc_fname, numrows=num_rows, random=False)
+    mpcorb_df = read_mpcorb(mpc_fname, numrows=num_rows)
     nums = mpcorb_df['Number'].tolist()
     
-    ephemerides_df = read_MPCephem(nums)
+    ephemerides_df = read_MPCephem(nums, ephlines=1200)
     
     df = pd.merge(mpcorb_df, ephemerides_df, on='Number')
     df.to_csv(out_fname)
