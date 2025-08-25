@@ -98,8 +98,6 @@ def sim_ephemerides():
     ## simulate each ephemeris
     ephem = assist.Ephem("/home/ellie/src/assist/data/linux_p1550p2650.440", "/home/ellie/src/assist/data/sb441-n16.bsp")
     
-    ## https://assist.readthedocs.io/en/latest/jupyter_examples/GettingStarted/ 
-    
     for i in range(len(dist_vectors)):
     
         print('simulating object {}'.format(i))
@@ -116,7 +114,7 @@ def sim_ephemerides():
                                                  vz=v_vectors[i][2])  
                 
         ## assign a start date to each object  
-        start_date = gen_random_date(2015, 1, 1, 2020, 1, 1)
+        start_date = gen_random_date(2025, 1, 1, 2030, 1, 1)
         t_initial = start_date - ephem.jd_ref
         
         ## convert from heliocentric to barycentric
@@ -135,26 +133,27 @@ def sim_ephemerides():
         
         ## create the ephemeris
         int_days = random.randint(min_int, max_int)
-        t_final = t_initial + int_days  - ephem.jd_ref
+        t_final = t_initial + int_days
         
-        N_samples = 100 ##int_days*3 ## this is like saying you observe it 3x per day
+        N_samples = int_days*3 ## this is like saying you observe it 3x per day
         times = np.linspace(t_initial, t_final, N_samples, endpoint=True)
         
         sycorax_pos = np.zeros((N_samples, 3))
         earth_pos = np.zeros((N_samples, 3))
         
         for idx, t in enumerate(times):
-            print('integrating object {}, iteration {}/{}'.format(i, idx, N_samples))
+            #print('integrating object {}, iteration {}/{}, time {}'.format(i, idx, N_samples, t))
             extras.integrate_or_interpolate(t)
             sycorax_pos[idx] = sim.particles[0].xyz
             earth_pos[idx] = ephem.get_particle("earth", t).xyz
             
-        plt.xlabel("x [AU]")
-        plt.ylabel("y [AU]")
         plt.plot(sycorax_pos[:,0], sycorax_pos[:,1], label="Sycorax {}".format(i))
         plt.plot(earth_pos[:,0],earth_pos[:,1], label="Earth")
-        plt.legend()    
-        plt.show()
+    
+    plt.xlabel("x [AU]")
+    plt.ylabel("y [AU]")
+    plt.legend()    
+    plt.show()
         
 def main():
     sim_ephemerides()
