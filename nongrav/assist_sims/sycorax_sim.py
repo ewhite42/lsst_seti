@@ -125,7 +125,7 @@ def sim_ephemerides():
         sim = rebound.Simulation()
         sim.add(sycorax_initial)
         sim.t = t_initial   
-        sim.ri_ias15.min_dt = 1
+        sim.ri_ias15.min_dt = 0.3
         extras = assist.Extras(sim, ephem)
         
         ## set up the acceleration parameters
@@ -148,7 +148,7 @@ def sim_ephemerides():
             earth_pos[idx] = ephem.get_particle("earth", t).xyz
             
         plt.plot(sycorax_pos[:,0], sycorax_pos[:,1], label="Sycorax {}".format(i))
-        plt.plot(earth_pos[:,0],earth_pos[:,1], label="Earth")
+    plt.plot(earth_pos[:,0],earth_pos[:,1], label="Earth")
     
     plt.xlabel("x [AU]")
     plt.ylabel("y [AU]")

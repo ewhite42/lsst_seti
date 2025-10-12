@@ -10,6 +10,7 @@
 ## MEW, 7 July 2025
 
 import numpy as np
+import pylab as plt
 import pandas as pd
 
 import time
@@ -21,10 +22,10 @@ from astropy.coordinates import CartesianRepresentation, CartesianDifferential
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 
-'''from poliastro.bodies import Sun
+from poliastro.bodies import Sun
 from poliastro.twobody import Orbit
 from poliastro.twobody.angles import M_to_E, E_to_nu, nu_to_E
-from poliastro.frames.ecliptic import HeliocentricEclipticJ2000'''
+from poliastro.frames.ecliptic import HeliocentricEclipticJ2000
 
 from velocity_calcs import measured_velocity
 from velocity_calcs import keplerian_velocity
@@ -33,7 +34,7 @@ from velocity_calcs import measured_velocity_spherical
 from velocity_calcs import keplerian_velocity_spherical
 from velocity_calcs import return_nu_ap_mpc
 
-def main(indata):
+def make_csv(indata):
     # import original file
     # calculate quantities for new columns
     # create new csv file
@@ -80,8 +81,9 @@ def main(indata):
     poli_elapsed = 0
     
     #print(indata['E'])   
+    eps = np.radians(23.43928)
     
-    '''for ind, row in indata.iterrows():
+    for ind, row in indata.iterrows():
     
         E = (nu_to_E(nu[ind], ecc[ind])) #+ 1.1*np.pi*u.rad
         E_list.append(E)
@@ -95,10 +97,6 @@ def main(indata):
                                        u.Quantity(peri[ind], u.rad), nu[ind], \
                                        u.Quantity(indata['Epoch'][ind], cds.MJD), plane='EARTH_ECLIPTIC')
                                        
-        et_poli = time.time()
-        poli_delta = et_poli - st_poli
-        
-        poli_elapsed += poli_delta
                                        
         #orb_heliocentric = obj_orbit.transform_to(heliocentric_frame)
         vk_vector = obj_orbit.v
@@ -106,14 +104,23 @@ def main(indata):
         vy = vk_vector.to(u.AU / u.day)[1]
         vz = vk_vector.to(u.AU / u.day)[2]
         
+        x_dotk_i = vx.value
+        y_dotk_i = np.cos(eps)*vy.value - np.sin(eps)*vz.value
+        z_dotk_i = np.sin(eps)*vy.value + np.cos(eps)*vz.value
+        
+        et_poli = time.time()
+        poli_delta = et_poli - st_poli
+        
+        poli_elapsed += poli_delta
+        
         r_vector = obj_orbit.r
         rx = r_vector.to(u.AU)[0]
         ry = r_vector.to(u.AU)[1]
         rz = r_vector.to(u.AU)[2]
         
         x_dotk.append(vx.value)
-        y_dotk.append(vy.value)
-        z_dotk.append(vz.value)
+        y_dotk.append(np.cos(eps)*vy.value - np.sin(eps)*vz.value) #y_dotk.append(vy.value) 
+        z_dotk.append(np.sin(eps)*vy.value + np.cos(eps)*vz.value)  #vz.value)
         #print(vk_vector.to(u.AU / u.day))
         #print(vk_vector.to(u.AU / u.day)[0])
         
@@ -122,15 +129,15 @@ def main(indata):
 
     print(f"Elapsed time (poliastro): {poli_elapsed:.6f} seconds")
     
-    st_mew = time.time()'''
+    st_mew = time.time()
             
     x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata, mpc=True)
     
-    #et_mew = time.time()
+    et_mew = time.time()
     
-    #mew_elapsed = et_mew - st_mew
+    mew_elapsed = et_mew - st_mew
     
-    #print(f"Elapsed time (our calcs): {mew_elapsed:.6f} seconds")
+    print(f"Elapsed time (our calcs): {mew_elapsed:.6f} seconds")
     
     indata['x_dotk'] = x_dotk 
     indata['y_dotk'] = y_dotk 
@@ -158,16 +165,68 @@ def main(indata):
     indata['delta_az_dot'] = indata['az_dotk']/indata['az_dot']
     indata['delta_el_dot'] = indata['el_dotk']/indata['el_dot']
 
-    return indata
+    return indata, [mew_elapsed, poli_elapsed]
     
-if __name__ == '__main__':
+def efficiency_comparison():
+    infile_name = '/home/ellie/research/lsst/poliastro_comparison.csv' #mpcorb_extended_complete.csv' #
+    #outfile_name = '/home/ellie/research/lsst/poliastro_comparison.csv' #
+    
+    #df = pd.read_csv(infile_name)
 
-    infile_name = '/home/ellie/research/lsst/mpcorb_ceres.csv' #extended_complete.csv'
-    outfile_name = '/home/ellie/research/lsst/mpcorb_ceres_vel_22aug.csv' #extended_complete_vel_18aug.csv'
+    df_indata = pd.read_csv(infile_name)
+    '''effs_mew = []
+    effs_poli = []
+    nsamp = []
+    
+    df_1 = df_indata[:1]
+    df_results1, effsi = make_csv(df_1)
+    
+    for i in range(6):
+        end = 10**i + 1
+        df_i = df_indata[:end]
+        df_resultsi, effsi = make_csv(df_i)
+        
+        effs_mew.append(effsi[0])
+        effs_poli.append(effsi[1])
+        nsamp.append(10**i)
+    
+    df = pd.DataFrame()
+    
+    df['nsamp'] = nsamp
+    df['mew_elapsed'] = effs_mew
+    df['poli_elapsed'] = effs_poli
+    
+    df['mew_rate'] = df['mew_elapsed']/df['nsamp']
+    df['poli_rate'] = df['poli_elapsed']/df['nsamp']
+    
+    df.to_csv(outfile_name)'''
+    
+    nsamp = df_indata['nsamp']
+    effs_mew = df_indata['mew_elapsed']
+    effs_poli = df_indata['poli_elapsed']
+    
+    plt.semilogy(nsamp, effs_mew, marker='.', label='velocity_calcs')
+    plt.semilogy(nsamp, effs_poli, marker='.', label='poliastro')
+    plt.title('Velocity Calculation Efficiency Comparison')
+    plt.legend()
+
+    plt.xlabel('Number of samples')
+    plt.ylabel('Time taken to compute velocity vector (s)')
+    plt.tight_layout()
+    plt.savefig('/home/ellie/research/lsst/yvelocity_eff_comparison.png')
+    plt.show() 
+    
+    plt.plot(df['nsamp'], df['mew_rate'])
+    plt.plot(df['nsamp'], df['poli_elapsed'])
+    plt.show()
+    
+def main():
+    infile_name = '/home/ellie/research/lsst/mpcorb_ceres.csv' #mpcorb_extended_complete.csv' #
+    outfile_name = '/home/ellie/research/lsst/mpcorb_ceres_vel_22aug_poli.csv' #mpcorb_extended_complete_vel_2sept.csv' #
 
     df_indata = pd.read_csv(infile_name)
  
-    df_results = main(df_indata)
+    df_results = make_csv(df_indata)
     df_results.to_csv(outfile_name)
 
     '''num_rows = len(df_indata)
@@ -194,3 +253,7 @@ if __name__ == '__main__':
 
     ## write to a new csv file
     df_results.to_csv(outfile_name)'''
+    
+if __name__ == '__main__':
+    #main()
+    efficiency_comparison()

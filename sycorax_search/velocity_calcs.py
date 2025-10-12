@@ -264,6 +264,8 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df, mpc=False):
     
     v_xyz = [P11*v_XYZ[0]+P12*v_XYZ[1]+P13*v_XYZ[2], P21*v_XYZ[0]+P22*v_XYZ[1]+P23*v_XYZ[2], P31*v_XYZ[0]+P32*v_XYZ[1]+P33*v_XYZ[2]]
     
+    ## convert from ecliptic plane to equatorial J2000 plane
+    
     x_dot = v_xyz[0] #X_dot #v_xyz[0] #X_dot #
     y_dot = np.cos(eps)*v_xyz[1] - np.sin(eps)*v_xyz[2] #Y_dot*np.cos(i) #v_xyz[1] #Y_dot #
     z_dot = np.sin(eps)*v_xyz[1] + np.cos(eps)*v_xyz[2] #-Y_dot*np.sin(i) #v_xyz[2]
