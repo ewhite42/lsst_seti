@@ -1,1 +1,3 @@
 sorcha run -c Rubin_full_footprint.ini -p c2017m4_atlas_phy.csv  --orbits c2017m4_atlas_orb.csv --pd /home/ellie/src/sorcha/sorcha/demo/baseline_v2.0_1yr.db -o /home/ellie/research/lsst/sorcha_output/ -t c2017m4_atlas --st c2017m4_atlas_stats
+
+C2017_M4_ATLAS_NG,NONGRAV,-1.180916959873815,9.271792277620230,-14.70164796948465,-0.01480262066754289,-0.001703121010884652,-0.003617409355885769,9.034130643042674e-6,1.083464003339007e-6,2.157776785072682e-6,60871.0
