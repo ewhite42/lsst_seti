@@ -4,11 +4,124 @@
 
 ## MEW, 21 October 2025
 
+import numpy as np
 import pylab as plt
 import pandas as pd
 from scipy.interpolate import interp1d
 
-def main(): 
+def compare_nongrav_with_grav(orb_fname, sorcha_fname):
+
+    df_ids = pd.read_csv(orb_fname)
+    df = pd.read_csv(sorcha_fname)
+    
+    id_mask = df_ids['ObjID'].str.contains("ONLY_GRAV")
+    df_ids_masked = df_ids[~id_mask]
+    ids = df_ids_masked['ObjID']
+    
+    mjd_nongrav_lists = []
+    ra_nongrav_lists = []
+    dec_nongrav_lists = []
+    
+    mjd_grav_lists = []
+    ra_grav_lists = []
+    dec_grav_lists = []
+    
+    for id in ids:
+    
+        mask1 = df['ObjID'] == id
+        df_masked = df[mask1]
+        
+        mask2 = df['ObjID'] == str(id)+"_ONLY_GRAV"
+        df_masked_g = df[mask2]
+        
+        mjd = df_masked['fieldMJD_TAI']
+        ra = df_masked['RA_deg']
+        dec = df_masked['Dec_deg']
+        
+        mjd_nongrav_lists.append(mjd)
+        ra_nongrav_lists.append(ra)
+        dec_nongrav_lists.append(dec)
+        
+        mjd_g = df_masked_g['fieldMJD_TAI']
+        ra_g = df_masked_g['RA_deg']
+        dec_g = df_masked_g['Dec_deg']
+        
+        mjd_grav_lists.append(mjd_g)
+        ra_grav_lists.append(ra_g)
+        dec_grav_lists.append(dec_g)
+        
+        if len(ra) != 0:
+        
+            mjd = np.array(mjd)
+            mjd_g = np.array(mjd_g)
+            
+            fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 8))
+        
+            axes[0,0].plot(mjd, ra, label=id)
+            axes[0,0].plot(mjd_g, ra_g, label=str(id)+"_ONLY_GRAV")
+            axes[0,0].set_xlabel("MJD TAI")
+            axes[0,0].set_ylabel("RA (deg)")
+            axes[0,0].set_title("RA vs MJD")
+        
+            axes[0,1].plot(mjd, dec, label=id)
+            axes[0,1].plot(mjd_g, dec_g, label=str(id)+"_ONLY_GRAV")
+            axes[0,1].set_xlabel("MJD TAI")
+            axes[0,1].set_ylabel("Dec (deg)")
+            axes[0,1].set_title("Dec vs MJD")
+            
+            ## determine endpoints of interpolation:
+            if mjd[0] < mjd_g[0]:
+                mjd_min = mjd_g[0]
+            else:
+                mjd_min = mjd[0]
+                
+            if mjd[-1] > mjd_g[-1]:
+                mjd_max = mjd_g[-1]
+            else:
+                mjd_max = mjd[-1]
+                
+            ## determine how many points to interpolate
+            ## for, and also create the interpolation
+            ## x-dataset
+            
+            n_interp = len(mjd)
+            mjd_new = np.linspace(mjd_min, mjd_max, 100) #n_interp)
+            
+            ## interpolate RA for both nongrav and only-grav
+            ## cases, so we can take the difference
+            
+            ra_cubic = interp1d(mjd, ra, kind='cubic')
+            ra_interp = ra_cubic(mjd_g)
+            
+            ra_g_cubic = interp1d(mjd_g, ra_g, kind='cubic')
+            ra_g_interp = ra_g_cubic(mjd_new)
+            
+            ## interpolate Dec for both nongrav and only-grav
+            ## cases, so we can take the difference
+            
+            dec_cubic = interp1d(mjd, dec, kind='cubic')
+            dec_interp = dec_cubic(mjd_g)#_new)
+            
+            dec_g_cubic = interp1d(mjd_g, dec_g, kind='cubic')
+            dec_g_interp = dec_g_cubic(mjd_new)
+            
+            axes[1,0].plot(mjd_g, ra_interp-ra_g)#_interp)
+            axes[1,0].set_xlabel("MJD TAI")
+            axes[1,0].set_ylabel("Delta RA (deg)")
+            axes[1,0].set_title("Difference in RA for nongrav vs grav-only")
+        
+            axes[1,1].plot(mjd_g, dec_interp-dec_g)#_interp)
+            axes[1,1].set_xlabel("MJD TAI")
+            axes[1,1].set_ylabel("Dec (deg)")
+            axes[1,1].set_title("Dec vs MJD")
+        
+            axes[0,0].legend()
+            axes[0,1].legend()
+            
+            plt.tight_layout()
+            plt.show()
+
+def read_c2017m4atlas_data(): 
     ## read in the csv file resulting from running Sorcha on the
     ## C2017 M4 ATLAS data with only gravitational acceleration
 
@@ -74,6 +187,12 @@ def main():
     plt.ylabel('Dec (deg)')
     plt.legend()
     plt.show()
+    
+def main():
+
+    ofname = 'nongrav_top20_orb.csv'
+    sfname = '/home/ellie/research/lsst/sorcha_output/nongrav_top20.csv'
+    compare_nongrav_with_grav(ofname, sfname)
     
 if __name__ == '__main__':
     main()
