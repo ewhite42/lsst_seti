@@ -18,6 +18,8 @@ def compare_nongrav_with_grav(orb_fname, sorcha_fname):
     df_ids_masked = df_ids[~id_mask]
     ids = df_ids_masked['ObjID']
     
+    hdist = np.sqrt(df_ids_masked['x']**2 + df_ids_masked['y']**2 + df_ids_masked['z']**2)
+    
     mjd_nongrav_lists = []
     ra_nongrav_lists = []
     dec_nongrav_lists = []
@@ -26,7 +28,10 @@ def compare_nongrav_with_grav(orb_fname, sorcha_fname):
     ra_grav_lists = []
     dec_grav_lists = []
     
-    for id in ids:
+    for i in range(len(ids)):
+    
+        id = ids[i]
+        d = hdist[i]
     
         mask1 = df['ObjID'] == id
         df_masked = df[mask1]
@@ -119,6 +124,7 @@ def compare_nongrav_with_grav(orb_fname, sorcha_fname):
             axes[0,1].legend()
             
             plt.tight_layout()
+            #plt.title("{0}, heliocentric dist. = {1} AU".format(id, d))
             plt.show()
 
 def read_c2017m4atlas_data(): 
