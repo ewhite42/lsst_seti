@@ -1,0 +1,43 @@
+To create Keplerian orbit input files for Sorcha: 
+
+ - Go to JPL Horizons: https://ssd.jpl.nasa.gov/horizons/app.html#/ 
+ - Set "Ephemeris Type" to Osculating Orbital Elements
+ - In "Edit Table Settings" - set Output Units to au and days
+ - Click "Generate Ephemeris"
+ - Scroll to the first output line
+ 
+Here is a key to show what JPL Horizons abbreviation corresponds 
+to what Keplerian orbital element: 
+
+A = semi-major axis (a in the Keplerian orbits format)
+EC = eccentricity (e in the Keplerian orbits format)
+IN = inclination, in degrees (inc in the Keplerian orbits format)
+OM = longitude of ascending node (node in the Keplerian orbits format)
+W = argument of perifocus (argPeri in the Keplerian orbits format)
+MA = mean anomaly (ma in the Keplerian orbits format)
+JDTDB = Julian Day Number, Barycentric Dynamical Time (in the Keplerian orbits format, epochMJD_TDB = JDTDB - 2400000.500000000)
+
+Scroll to the first input line from the JPL Horizons ephemeris (or retrieve the first row in Python),
+and extract the appropriate orbital elements to put in the Keplerian orbits csv file. 
+
+Use kep2cart (in lsst_seti repo, under nongrav/sorcha_ng) to convert from Keplerian orbits 
+format to Cartesian orbits format. (Note that it would be a lot cleaner, I think, to implement 
+a separate nongravitational accelerations input file so that we don't have to bother 
+with this orbit file conversion step).
+
+Create the nongravitational orbits files by adding the a1, a2, a3, and model columns to the
+Cartesian orbit file, and populate the appropriate nongrav accelerations. 
+
+Create the Physical Properties file; I am currently using placeholder values but need to
+revisit Taylor et al and the resources Brian mentioned to actually generate reasonable
+values for this file. 
+
+Run Sorcha using a command like the following: 
+
+sorcha run -c Rubin_full_footprint.ini -p ceres_phy.csv --orbits /home/ellie/research/lsst/sorcha_output/ceres/ceres_orb_ng_a1_0.0.csv --pd /home/ellie/src/sorcha/sorcha/demo/baseline_v2.0_1yr.db -o /home/ellie/research/lsst/sorcha_output/ceres/ -t ceres_ng_a1_0.0 --st ceres_ng_a1_0.0_stats
+
+Then edit the file so that only detections within 30 days of the start date are included, since heliolinc seems to balk at longer arcs. Then, run create_maketracklets_input.py to create input that is compatible with make_tracklets
+
+Run make_tracklets on the input created above. Use the ObsCodes.html, and Earth files from Aren, which can be found in ../research/lsst/heliolinc_files. You can also use col_format file found in the same folder. Use a command such as the following: 
+
+

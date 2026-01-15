@@ -44,16 +44,16 @@ def get_jpl_output(target_id, startday, endday, step, obscode='X05'):
     
 def main(): 
 
-    fname_kep = "pratchett.csv"
-    fname_cart = "pratchett_cart.csv"
+    fname_sorcha = "/home/ellie/research/lsst/sorcha_output/c2012v1_panstarrs/c2012v1_panstarrs_ng.csv"
+    #fname_cart = "pratchett_cart.csv"
 
-    mjd1,ra1,dec1 = read_sorcha_output(fname_cart)
+    mjd1,ra1,dec1 = read_sorcha_output(fname_sorcha)
     #mjd2,ra2,dec2 = read_sorcha_output(fname_cart)
      
     ## Here is code to use when comparing Sorcha output to JPL
     ## Horizons output (instead of comparing 2 Sorcha outputs): 
         
-    target_id = '127005' ## for Pratchett
+    target_id = 'DES=  1003219;' #'127005' ## for Pratchett
     startday = '2024-02-10'
     endday = '2024-08-08'
     step = '1d'

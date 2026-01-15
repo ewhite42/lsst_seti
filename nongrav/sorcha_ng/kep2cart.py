@@ -75,15 +75,11 @@ def kep2cart(fname, outfname):
 def main():
 
     ## define the name of the orbits file in Keplerian format
-    kep_fname = "pratchett_orb_kep.csv"
+    kep_fname = "/home/ellie/research/lsst/sorcha_output/c2012v1_panstarrs/c2012v1_panstarrs_kep.csv"
     
     ## define the name of the output file, where the Cartesian
     ## elements will be written
-    cart_fname = "pratchett_orb_cart.csv"
-    
-    ## define the name of the new Cartesian orbits file
-    ## you would like to create
-    cart_fname = "pratchett_orb_cart.csv"
+    cart_fname = "/home/ellie/research/lsst/sorcha_output/c2012v1_panstarrs/c2012v1_panstarrs_cart.csv"
     
     ## generate the new Cartesian orbits file
     kep2cart(kep_fname,cart_fname)
