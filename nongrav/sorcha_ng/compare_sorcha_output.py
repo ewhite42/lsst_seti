@@ -5,8 +5,13 @@ import pandas as pd
 from astroquery.jplhorizons import Horizons
 import astropy.units as u
 
-def read_sorcha_output(fname):
+def read_sorcha_output(fname, objid=None):
+
     df = pd.read_csv(fname)
+    
+    if objid:
+        df = df[df['ObjID'] == objid]
+        
     mjd = df['fieldMJD_TAI']
     ra = df['RA_deg']
     dec = df['Dec_deg']
@@ -44,10 +49,11 @@ def get_jpl_output(target_id, startday, endday, step, obscode='X05'):
     
 def main(): 
 
-    fname_sorcha = "/home/ellie/research/lsst/sorcha_output/c2012v1_panstarrs/c2012v1_panstarrs_ng.csv"
+    fname_sorcha = "/home/ellie/research/lsst/sorcha_output/127005pratchett_new/pratchett_ng_a1_-12.0_comet.csv" #c2012v1_panstarrs/c2012v1_panstarrs_ng.csv"
     #fname_cart = "pratchett_cart.csv"
 
-    mjd1,ra1,dec1 = read_sorcha_output(fname_sorcha)
+    mjd1,ra1,dec1 = read_sorcha_output(fname_sorcha, objid='127005Pratchett_comet')
+    mjd2,ra2,dec2 = read_sorcha_output(fname_sorcha, objid='127005Pratchett_asteroid')
     #mjd2,ra2,dec2 = read_sorcha_output(fname_cart)
      
     ## Here is code to use when comparing Sorcha output to JPL
@@ -58,17 +64,17 @@ def main():
     endday = '2024-08-08'
     step = '1d'
    
-    mjd2,ra2,dec2 = get_jpl_output(target_id, startday, endday, step)     
+    #mjd2,ra2,dec2 = get_jpl_output(target_id, startday, endday, step)     
     
-    plt.plot(mjd1, ra1, label="Sorcha")
-    plt.plot(mjd2, ra2, label="JPL Horizons")
+    plt.plot(mjd1, ra1, label="Comet")
+    plt.plot(mjd2, ra2, label="Asteroid")
     plt.legend()
     plt.xlabel("MJD TDB")
     plt.ylabel("RA")
     plt.show()
     
-    plt.plot(mjd1, dec1, label="Sorcha")
-    plt.plot(mjd2, dec2, label="JPL Horizons")
+    plt.plot(mjd1, dec1, label="Comet")
+    plt.plot(mjd2, dec2, label="Asteroid")
     plt.legend()
     plt.xlabel("MJD TDB")
     plt.ylabel("Dec")
