@@ -85,7 +85,7 @@ def read_mpcorb(mpc_fname, numrows=10, start_idx=0, random=False, exclude=None):
 
     return df
     
-def read_MPCephem(nums, ephlines=1):
+def read_MPCephem(nums, startdate='2020-01-01', step='1d', ephlines=1):
     
     ephs = []
     
@@ -104,7 +104,7 @@ def read_MPCephem(nums, ephlines=1):
             continue '''
     
         try: 
-            eph = MPC.get_ephemeris(str(i), eph_type='heliocentric', number=ephlines)
+            eph = MPC.get_ephemeris(str(i), eph_type='heliocentric', number=ephlines, start=startdate, step=step)
             eph = eph.to_pandas()
             ephs.append(eph)
             
@@ -139,14 +139,14 @@ def read_MPCephem(nums, ephlines=1):
 
 if __name__ == '__main__':
     mpc_fname = '/home/ellie/Downloads/mpcorb_extended.json'
-    out_fname = '/home/ellie/research/lsst/mpcorb_ceres.csv'
+    out_fname = '/home/ellie/research/lsst/mpcorb_ceres_new.csv'
     
     num_rows = 1
     
     mpcorb_df = read_mpcorb(mpc_fname, numrows=num_rows)
     nums = mpcorb_df['Number'].tolist()
     
-    ephemerides_df = read_MPCephem(nums, ephlines=1200)
+    ephemerides_df = read_MPCephem(nums, ephlines=1200, startdate='2024-01-01', step='2d')
     
     df = pd.merge(mpcorb_df, ephemerides_df, on='Number')
     df.to_csv(out_fname)

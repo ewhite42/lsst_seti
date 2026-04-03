@@ -79,6 +79,9 @@ def return_nu_mpc(row):
     node = row['Node'] * np.pi/180 
     peri = row['Peri'] * np.pi/180 ## argument of the perihelion
     i = row['i']* np.pi/180
+    a = row['a']
+    e = row['e']
+    r = row['heliocentricDist']
     
     P11 = np.cos(node)*np.cos(peri)-np.sin(node)*np.cos(i)*np.sin(peri)
     P21 = np.sin(node)*np.cos(peri)+np.cos(node)*np.cos(i)*np.sin(peri)
@@ -96,25 +99,63 @@ def return_nu_mpc(row):
     y = row['Y']
     z = row['Z']
     
+    ## new stuff ##
+    x_dot = row["X'"]
+    y_dot = row["Y'"]
+    z_dot = row["Z'"]
+    #################
+    
     X = P11*x + P21*y + P31*z
     Y = P12*x + P22*y + P32*z
     Z = P13*x + P23*y + P33*z
+    
+    ## new stuff ##
+    X_dot = P11*x_dot + P21*y_dot + P31*z_dot
+    Y_dot = P12*x_dot + P22*y_dot + P32*z_dot
+    Z_dot = P13*x_dot + P23*y_dot + P33*z_dot
+    ################
     
     ## obliquity
     eps = np.radians(23.43928)
     
     Y_eq = np.cos(eps)*Y - np.sin(eps)*Z
+    Z_eq = np.sin(eps)*Y + np.cos(eps)*Z
+    
+    Ydot_eq = np.cos(eps)*Y_dot - np.sin(eps)*Z_dot
+    Zdot_eq = np.sin(eps)*Y_dot + np.cos(eps)*Z_dot
     
     ## note the switch to the < sign below (instead of
     ## the > sign used for the Rubin data, above). 
     ## I am guessing this means that MPC uses a different
     ## nu convention than Rubin.
-    
-    if Y_eq > 0:
-        return np.arccos(X/row['heliocentricDist'])        
-    else: 
-        return (2*np.pi) - np.arccos(X/row['heliocentricDist'])
+        
     #return np.arccos(X/row['heliocentricDist'])
+    
+    r_vec =np.array([X, Y_eq, Z_eq])
+    v_vec = np.array([X_dot, Ydot_eq, Zdot_eq])
+    h_vec = np.cross(r_vec, v_vec)
+    mu = 2.96e-4 ## au**3 / day**2
+    
+    e_vec = (np.cross(v_vec, h_vec)/mu) - (r_vec/r)
+    
+    nu = np.dot(e_vec, r_vec)/(r*e)
+    
+    '''if np.dot(r_vec, v_vec) > 0:
+        return nu     
+    else: 
+        return (2*np.pi) - nu'''
+        
+    '''if np.dot(r_vec, v_vec) >0: #Y_eq > 0:
+        return np.arccos(X/row['heliocentricDist'])      
+    else: 
+        return (2*np.pi) - np.arccos(X/row['heliocentricDist'])'''
+        
+    nu = np.arctan2(Y, X)
+    
+    if nu < 0:
+        nu += 2 * np.pi
+        
+    return nu
         
 def return_nu_ap(row):
 
@@ -149,18 +190,34 @@ def return_nu_ap_mpc(row):
     P21 = np.sin(node)*np.cos(peri)+np.cos(node)*np.cos(i)*np.sin(peri)
     P31 = np.sin(i)*np.sin(peri)
     
+    P12 = -np.cos(node)*np.sin(peri)-np.sin(node)*np.cos(i)*np.cos(peri)
+    P22 = -np.sin(node)*np.sin(peri)+np.cos(node)*np.cos(i)*np.cos(peri)
+    P32 = np.sin(i)*np.cos(peri)
+    
+    P13 = np.sin(node)*np.sin(i)
+    P23 = -np.cos(node)*np.sin(i)
+    P33 = np.cos(i)
+    
     x = row['X']
     y = row['Y']
     z = row['Z']
     
     X = P11*x + P21*y + P31*z
-
+    Y = P12*x + P22*y + P32*z
+    
+    nu = np.arctan2(Y, X)
+    
+    if nu < 0:
+        nu += 2 * np.pi
+        
+    return u.Quantity(nu, u.rad)
+    
     #return np.arccos(row['heliocentricX']/row['heliocentricDist']) + ((1.5*np.pi) if row['heliocentricY'] < 0 else 0)
-    if row['Y'] > 0:
+    '''if row['Y'] > 0:
         return u.Quantity(2*np.pi - np.arccos(X/row['heliocentricDist']), u.rad)
         
     else: 
-        return u.Quantity(np.arccos(X/row['heliocentricDist']), u.rad)
+        return u.Quantity(np.arccos(X/row['heliocentricDist']), u.rad)'''
 
 def keplerian_velocity(r, a):
     # this function allows us to calculate the predicted,
@@ -191,6 +248,9 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df, mpc=False):
     # mean motion is the average angular distance traveled per day
     n = np.sqrt(G_au_d / (a**3))
     
+    ## mu
+    mu = G_au_d
+    
     ## obliquity
     eps = np.radians(23.43928)
     
@@ -201,28 +261,27 @@ def keplerian_velocity_xyz(r, a, e, i, node, peri, x, y, df, mpc=False):
         nu = df.apply(return_nu, axis=1)
     #M = np.arccos(x/r)
     
-    ## calculate eccentric anomaly
-    #guess_E = M
-    #solution_E = fsolve(kepler_equation, M, args=(M,e))
+    #nu = np.unwrap(nu,period=np.pi)
+    h = np.sqrt(mu * a * (1 - e**2))
     
-    sin_E = (np.sin(nu) * np.sqrt(1 - e**2)) / (1 + e * np.cos(nu)) 
+    v_X_perifocal = (mu / h) * (-np.sin(nu))
+    v_Y_perifocal = (mu / h) * (e + np.cos(nu))
+    v_Z_perifocal = np.zeros_like(v_X_perifocal)
+    
+    v_XYZ = np.array([v_X_perifocal, v_Y_perifocal, v_Z_perifocal])
+    
+    ## calculate eccentric anomaly
+    
+    '''sin_E = (np.sin(nu) * np.sqrt(1 - e**2)) / (1 + e * np.cos(nu)) 
     cos_E = (e + np.cos(nu)) / (1 + e * np.cos(nu)) 
     E = np.arctan2(sin_E, cos_E) #+ np.pi 
 
-    #E = solution_E + np.pi
-    
-    #print((a*e + x)/a)
-    #E = np.arccos((a*e + x)/a)#np.arccos((1 - r/a)/e) ## calculate eccentric anomaly
-    
-    #node = 0 #2*np.pi - node # node+np.pi
-    #peri = 0 #2*np.pi - peri #peri+np.pi #5*np.pi/180
-    #i = i #*180/np.pi #0.5*np.pi - i
     
     ## unrotated coordinates and vector
     X_dot = (-(a*n*np.sin(E))/(1-e*np.cos(E)))
     Y_dot = ((a*n*np.sqrt(1-(e**2))*np.cos(E))/(1-(e*np.cos(E))))
     
-    v_XYZ = [X_dot, Y_dot, 0]
+    v_XYZ = [X_dot, Y_dot, 0]'''
 
     ## rotation matrix
     P11 = np.cos(node)*np.cos(peri)-np.sin(node)*np.cos(i)*np.sin(peri)
@@ -355,6 +414,8 @@ def new_keplerian_xyz(r, a, e, i, node, peri, x, y, df, mpc=False):
     else:
         nu = df.apply(return_nu, axis=1)
     #M = np.arccos(x/r)
+    
+    #nu = np.unwrap(nu)
     
     ## calculate eccentric anomaly
     #guess_E = M

@@ -131,7 +131,7 @@ def make_csv(indata):
     
     st_mew = time.time()
             
-    x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata, mpc=True)
+    #x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata, mpc=True)
     
     et_mew = time.time()
     
@@ -165,7 +165,7 @@ def make_csv(indata):
     indata['delta_az_dot'] = indata['az_dotk']/indata['az_dot']
     indata['delta_el_dot'] = indata['el_dotk']/indata['el_dot']
 
-    return indata, [mew_elapsed, poli_elapsed]
+    return indata #, [mew_elapsed], poli_elapsed]
     
 def efficiency_comparison():
     infile_name = '/home/ellie/research/lsst/poliastro_comparison.csv' #mpcorb_extended_complete.csv' #
@@ -221,8 +221,8 @@ def efficiency_comparison():
     plt.show()
     
 def main():
-    infile_name = '/home/ellie/research/lsst/mpcorb_ceres.csv' #mpcorb_extended_complete.csv' #
-    outfile_name = '/home/ellie/research/lsst/mpcorb_ceres_vel_22aug_poli.csv' #mpcorb_extended_complete_vel_2sept.csv' #
+    infile_name = '/home/ellie/research/lsst/mpcorb_ceres_new.csv' #mpcorb_extended_complete.csv' #
+    outfile_name = '/home/ellie/research/lsst/mpcorb_ceres_vel_new_poli.csv' #22aug_poli.csv' #mpcorb_extended_complete_vel_2sept.csv' #
 
     df_indata = pd.read_csv(infile_name)
  
@@ -255,5 +255,5 @@ def main():
     df_results.to_csv(outfile_name)'''
     
 if __name__ == '__main__':
-    #main()
-    efficiency_comparison()
+    main()
+    #efficiency_comparison()
