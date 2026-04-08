@@ -22,10 +22,10 @@ from astropy.coordinates import CartesianRepresentation, CartesianDifferential
 from astropy.coordinates import EarthLocation
 from astropy.time import Time
 
-from poliastro.bodies import Sun
+'''from poliastro.bodies import Sun
 from poliastro.twobody import Orbit
 from poliastro.twobody.angles import M_to_E, E_to_nu, nu_to_E
-from poliastro.frames.ecliptic import HeliocentricEclipticJ2000
+from poliastro.frames.ecliptic import HeliocentricEclipticJ2000'''
 
 from velocity_calcs import measured_velocity
 from velocity_calcs import keplerian_velocity
@@ -78,7 +78,7 @@ def make_csv(indata):
     y_dotk = []
     z_dotk = []
     
-    poli_elapsed = 0
+    '''poli_elapsed = 0
     
     #print(indata['E'])   
     eps = np.radians(23.43928)
@@ -127,11 +127,11 @@ def make_csv(indata):
     #indata['E'] = E_list
     #indata['nu'] = nu
 
-    print(f"Elapsed time (poliastro): {poli_elapsed:.6f} seconds")
+    print(f"Elapsed time (poliastro): {poli_elapsed:.6f} seconds")'''
     
     st_mew = time.time()
             
-    #x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata, mpc=True)
+    x_dotk, y_dotk, z_dotk = keplerian_velocity_xyz(indata['heliocentricDist'], a, e, i, node, peri, x, y, indata, mpc=True)
     
     et_mew = time.time()
     
@@ -221,8 +221,8 @@ def efficiency_comparison():
     plt.show()
     
 def main():
-    infile_name = '/home/ellie/research/lsst/mpcorb_ceres_new.csv' #mpcorb_extended_complete.csv' #
-    outfile_name = '/home/ellie/research/lsst/mpcorb_ceres_vel_new_poli.csv' #22aug_poli.csv' #mpcorb_extended_complete_vel_2sept.csv' #
+    infile_name = '/home/ellie/research/lsst/mpcorb_csvs/mpcorb_extended_complete.csv' #mpcorb_ceres_new.csv' #
+    outfile_name = '/home/ellie/research/lsst/mpcorb_csvs/mpcorb_extended_complete_vel_2sept_new.csv' # mpcorb_ceres_vel_new_poli.csv' #22aug_poli.csv' #
 
     df_indata = pd.read_csv(infile_name)
  
