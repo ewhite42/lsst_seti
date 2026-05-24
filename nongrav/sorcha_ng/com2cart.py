@@ -18,7 +18,7 @@ def com2cart(fname, outfname):
     inc = np.radians(df['inc'])
     node = np.radians(df['node'])
     argPeri = np.radians(df['argPeri'])
-    tp = np.radians(df['t_p_MJD_TDB'])
+    tp = df['t_p_MJD_TDB']
     epochMJD_TDB = df['epochMJD_TDB']
     
     ## define the gravitational parameter mu

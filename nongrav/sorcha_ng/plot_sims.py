@@ -9,6 +9,12 @@ import pylab as plt
 import pandas as pd
 from scipy.interpolate import interp1d
 
+## import the comparison module
+jpl_dir = os.path.abspath(jpl_path)
+sys.path.insert(0, jpl_dir)
+
+from compare_sorcha_output import get_jpl_output as gjo
+
 def compare_nongrav_with_grav(orb_fname, sorcha_fname):
 
     df_ids = pd.read_csv(orb_fname)
