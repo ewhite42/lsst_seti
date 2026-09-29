@@ -1,0 +1,13 @@
+To install Sorcha with nongravitational accelerations enabled: 
+
+First, install Sorcha in developer’s mode as described here: https://sorcha.readthedocs.io/en/latest/installation.html#installing-sorcha-in-development-mode 
+
+Then, replace the following files:
+
+Replace /sorcha/src/sorcha/readers/Orbit_Aux_Reader.py with the Orbit_Aux_Reader.py file in lsst_seti/sorcha_mod
+
+Replace /sorcha/src/sorcha/ephemeris/simulation_parsing.py with the simulation_parsing.py file in lsst_seti/sorcha_mod
+
+Replace /sorcha/src/sorcha/ephemeris/simulation_setup.py with the simulation_setup.py file in lsst_seti/sorcha_mod
+
+That should do it! Note that this is a stopgap solution until a modification of this sort is implemented in Sorcha or Sorcha add-ons. Feel free to reach out with any questions! 
